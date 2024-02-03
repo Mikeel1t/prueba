@@ -37,7 +37,7 @@ app.post('/login', async (req, res) => {
 
   try {
     // Obtener la contraseña hasheada de la base de datos
-    const sql = 'SELECT id, Password FROM users WHERE Email = ?';
+    const sql = 'SELECT id, Password, FullName, Age, Email FROM users WHERE Email = ?';
     db.query(sql, [username], async (err, results) => {
       if (err) {
         console.error('Error al buscar usuario: ' + err.message);
@@ -51,14 +51,16 @@ app.post('/login', async (req, res) => {
       }
 
       const user = results[0];
-      
+
       // Comparar la contraseña proporcionada con la contraseña hasheada almacenada
       const passwordMatch = await bcrypt.compare(password, user.Password);
 
       if (passwordMatch) {
         // Generar un token JWT incluyendo el ID del usuario
         const token = jwt.sign({ userId: user.id }, keySecret, { expiresIn: '1h' });
-        res.json({login:true, token, user});
+        let persona = { 'FullName': user.FullName, 'Age': user.Age, 'Email': user.Email, 'id': user.id }
+
+        res.json({ login: true, token, 'user': persona });
       } else {
         res.status(401).json({ error: 'Credenciales inválidas' });
       }
@@ -94,19 +96,145 @@ app.get('/protected', verifyToken, (req, res) => {
 
 //Ruta para guardar los datos
 app.post('/register', async (req, res) => {
-  const {nombre, edad, email, contra} = req.body;
-  try{
+  const { nombre, edad, email, contra } = req.body;
+  try {
     const hashedPassword = await bcrypt.hash(contra, 10);
     const sql = 'INSERT INTO users(FullName, Age, Email, Password) VALUES (?,?,?,?)';
-    db.query(sql, [nombre, edad, email, hashedPassword], (err, result)=> {
-      if(err){
+    db.query(sql, [nombre, edad, email, hashedPassword], (err, result) => {
+      if (err) {
         console.log(`Error al guardar los datos ${err.message}`);
-        res.status(500).json({error: "Error interno del servidor"})
+        res.status(500).json({ error: "Error interno del servidor" })
       } else {
-        res.json({ mensaje:'Datos guardados con éxito'})
+        res.json({ mensaje: 'Datos guardados con éxito' })
       }
     })
-  } catch (error){
+  } catch (error) {
+
+  }
+})
+
+// Ruta para actualizar usuario
+app.post('/actualizar-usuario', (req, res) => {
+  const { idUsuario, nuevosDatos } = req.body;
+
+  const sql = 'UPDATE users SET FullName = ?, Email = ?, Age = ? WHERE id = ?';
+  const params = [nuevosDatos.nombre, nuevosDatos.email, nuevosDatos.edad, idUsuario];
+
+  db.query(sql, params, (error, results) => {
+    if (error) {
+      console.error('Error al actualizar el usuario:', error);
+      res.status(500).json({ error: 'Error al actualizar el usuario' });
+    } else {
+      res.json({ success: true });
+    }
+  });
+});
+
+// empoint guardar post
+app.post('/guardar_post', async (req, res) => {
+  const { title, content, userId } = req.body;
+  try {
+    const sql = 'INSERT INTO posts(Title, Content, userId) VALUES (?,?,?)';
+    db.query(sql, [title, content, userId], (err, result) => {
+      if (err) {
+        console.log(`Error al guardar los datos ${err.message}`);
+        res.status(500).json({ error: "Error interno del servidor" })
+      } else {
+        res.json({ mensaje: 'Datos guardados con éxito' })
+      }
+    })
+  } catch (error) {
+
+  }
+})
+
+app.get('/consultar_post_all', async (req, res) => {
+  try {
+     // Obtén el valor del parámetro 'filtro' de la petición GET
+     const filtro = req.query.filtro;
+
+     let sql = 'SELECT p.Title, p.Content, p.Likes, u.FullName, p.id, p.createdAt FROM posts p JOIN users u ON u.id = p.userId';
+ 
+     if (filtro && filtro.trim() !== '') {
+       sql += ` WHERE p.Title LIKE '%${filtro}%' OR p.Content LIKE '%${filtro}%'`;
+     }
+    sql += ' order by p.id desc';
+    db.query(sql, [], (err, result) => {
+      if (err) {
+        console.log(`Error al consultar los datos ${err.message}`);
+        res.status(500).json({ error: "Error interno del servidor" })
+      } else {
+        res.json({ result })
+      }
+    })
+  } catch (error) {
+
+  }
+})
+
+// Ruta para actualizar like
+app.post('/actualizar_like', (req, res) => {
+  const { id, like } = req.body;
+
+  const sql = 'UPDATE posts SET Likes = ?  WHERE id = ?';
+  const params = [like, id];
+
+  db.query(sql, params, (error, results) => {
+    if (error) {
+      console.error('Error al actualizar el post:', error);
+      res.status(500).json({ error: 'Error al actualizar el post' });
+    } else {
+      res.json({ success: true });
+    }
+  });
+});
+
+// Ruta para actualizar post
+app.post('/actualizar_post', (req, res) => {
+  const { id, nuevosDatos } = req.body;
+
+  const sql = 'UPDATE posts SET Title = ?, Content = ?  WHERE id = ?';
+  const params = [nuevosDatos.Title, nuevosDatos.Content, id];
+
+  db.query(sql, params, (error, results) => {
+    if (error) {
+      console.error('Error al actualizar el post:', error);
+      res.status(500).json({ error: 'Error al actualizar el post' });
+    } else {
+      res.json({ success: true });
+    }
+  });
+});
+//Ruta eliminar post
+app.post('/eliminar_post', (req, res) => {
+  const { id } = req.body;
+
+  const sql = 'DELETE FROM posts WHERE id = ?';
+  const params = [id];
+
+  db.query(sql, params, (error, results) => {
+    if (error) {
+      console.error('Error al actualizar el post:', error);
+      res.status(500).json({ error: 'Error al actualizar el post' });
+    } else {
+      res.json({ success: true });
+    }
+  });
+});
+
+app.get('/consultar_post_id', async (req, res) => {
+  try {
+    const { id } = req.body;
+    const sql = 'SELECT * FROM posts p WHERE p.id = ?';
+    db.query(sql, [], (err, result) => {
+      if (err) {
+        console.log(`Error al consultar los datos ${err.message}`);
+        res.status(500).json({ error: "Error interno del servidor" })
+      } else {
+        res.json({ result })
+      }
+    })
+  } catch (error) {
 
   }
 })

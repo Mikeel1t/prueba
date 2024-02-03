@@ -1,24 +1,29 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginForm from './components/LoginForm';
 import Home from './components/Home';
 
-function App() {
-  const [isLoggedIn, setLoggedIn] = useState(false);
-
-  const handleLogin = () => {
-    setLoggedIn(true);
-  };
+const App = () => {
+  const { isLoggedIn } = useAuth();
 
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={isLoggedIn ? <Navigate to="/home" /> : <LoginForm onLogin={handleLogin} />} />
+        <Route path="/login" element={isLoggedIn ? <Navigate to="/home" /> : <LoginForm />} />
         <Route path="/home" element={isLoggedIn ? <Home /> : <Navigate to="/login" />} />
         <Route path="/" element={<Navigate to="/login" />} />
       </Routes>
     </Router>
   );
-}
+};
 
-export default App;
+const AppWithAuthProvider = () => {
+  return (
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  );
+};
+
+export default AppWithAuthProvider;

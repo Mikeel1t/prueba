@@ -1,9 +1,11 @@
-import React, { useState, useId} from 'react';
+import React, { useState, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { endpoints } from '../apiConfig';
 import axios from 'axios';
 import '../App.css';
 
-const LoginForm = ({ onLogin }) => {
+const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
@@ -20,24 +22,28 @@ const LoginForm = ({ onLogin }) => {
   const EmailId = useId();
   const ContraId = useId();
   const ConfirmContraId = useId();
+  const { handleLogin } = useAuth();
 
-  const handleLogin = async () => {
+  const handleLoginClick = async () => {
     try {
 
-      const response = await axios.post('http://localhost:3001/login', {
+      const response = await axios.post(endpoints.login, {
         username,
         password,
       });
       if (response.data.login) {
-        onLogin();
-    	navigate('/home');
+        let token = response.data.token;
+        let persona = JSON.stringify(response.data.user);
+        navigate('/home');
+        handleLogin(token);
+        localStorage.setItem('usuario',persona);        
       }
     } catch (error) {
       console.error('Error en el inicio de sesión:', error.response.data.error);
     }
   };
 
-  
+
 
   const handleGuardarDatos = async () => {
     try {
@@ -68,7 +74,7 @@ const LoginForm = ({ onLogin }) => {
       setError('');
 
       // Registro de usuario y obtención del token
-      const response = await axios.post('http://localhost:3001/register', {
+      const response = await axios.post(endpoints.guardarUsuario, {
         nombre,
         edad,
         email,
@@ -83,17 +89,17 @@ const LoginForm = ({ onLogin }) => {
     }
   };
 
-  const handleCerrarModal = () =>{
+  const handleCerrarModal = () => {
     setShowModal(false)
   }
   return (
     <div className='body'>
-        <div className='container'>
-      <div className='form' id='login'>
+      <div className='container'>
+        <div className='form' id='login'>
           <h1 className='text-3xl font-bold'>Login</h1>
         </div>
-      <div className='form__input-group'>
-       <input
+        <div className='form__input-group'>
+          <input
             type="text"
             required
             className="form__input"
@@ -101,13 +107,13 @@ const LoginForm = ({ onLogin }) => {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
-      </div>
-      <div className='form__input-group'>
-        <input className="form__input" type="password" placeholder='Password' value={password} onChange={(e) => setPassword(e.target.value)} />
-      </div>
-      <button className="form__button" onClick={handleLogin}>Login</button>
-      <div className='padding'></div>
-      <button className="form__button" onClick={() => setShowModal(true)}>Crear Usuario</button>
+        </div>
+        <div className='form__input-group'>
+          <input className="form__input" type="password" placeholder='Password' value={password} onChange={(e) => setPassword(e.target.value)} />
+        </div>
+        <button className="form__button" onClick={handleLoginClick}>Login</button>
+        <div className='padding'></div>
+        <button className="form__button" onClick={() => setShowModal(true)}>Crear Usuario</button>
         {showModal ? (
           <>
             <div className="justify-center items-center flex overflow-x-hidden overflow-y-auto fixed inset-0 z-50 outline-none focus:outline-none">
@@ -122,48 +128,47 @@ const LoginForm = ({ onLogin }) => {
                     {error && <p style={{ color: 'red' }}>{error}</p>}
                     <div className="relative z-0 w-full mb-5 group">
                       <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} id={nombreId}
-                      name={nombreId} className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer" placeholder=" "
+                        name={nombreId} className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer" placeholder=" "
                       />
                       <label for={nombreId} className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6">Full Name</label>
                     </div>
                     <div className='grid md:grid-cols-2 md:gap-6'>
-                        <div className="relative z-0 w-full mb-5 group">
+                      <div className="relative z-0 w-full mb-5 group">
                         <input type="number" min='0' value={edad} onChange={(e) => setEdad(e.target.value)} id={AgeId}
-                        name={AgeId} className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer" placeholder=" "
+                          name={AgeId} className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer" placeholder=" "
                         />
                         <label for={AgeId} className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
                         >Age</label>
-                        </div>
-                        <div className='relative z-0 w-full mb-5 group'>
+                      </div>
+                      <div className='relative z-0 w-full mb-5 group'>
 
                         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} id={EmailId}
-                        name={EmailId} className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer" placeholder=" "
+                          name={EmailId} className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer" placeholder=" "
                         />
                         <label for={EmailId} className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
                         >Email Address</label>
-                        </div>
+                      </div>
                     </div>
                     <div className='grid md:grid-cols-2 md:gap-6'>
-                        <div className='relative z-0 w-full mb-5 group'>
+                      <div className='relative z-0 w-full mb-5 group'>
 
                         <input type="password" value={contra} onChange={(e) => setContra(e.target.value)} id={ContraId}
-                        name={ContraId} className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer" placeholder=" "
+                          name={ContraId} className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer" placeholder=" "
                         />
                         <label for={ContraId} className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
                         >Password</label>
-                        </div>
-                        <div className='relative z-0 w-full mb-5 group'>
+                      </div>
+                      <div className='relative z-0 w-full mb-5 group'>
                         <input type="password" value={confirmarContra} onChange={(e) => setConfirmarContra(e.target.value)} id={ConfirmContraId}
-                        name={ConfirmContraId} className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer" placeholder=" "
+                          name={ConfirmContraId} className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer" placeholder=" "
                         />
                         <label for={ConfirmContraId} className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
                         >Confirm Password</label>
-                        </div>
+                      </div>
                     </div>
-    
-            
+
+
                   </form>
-                  {/*footer*/}
                   <div className="flex items-center justify-end p-6 border-t border-solid border-blueGray-200 rounded-b">
                     <button
                       className="text-red-500 background-transparent font-bold uppercase px-6 py-2 text-sm outline-none focus:outline-none mr-1 mb-1 ease-linear transition-all duration-150"
@@ -186,9 +191,9 @@ const LoginForm = ({ onLogin }) => {
             <div className="opacity-25 fixed inset-0 z-40 bg-black"></div>
           </>
         ) : null}
+      </div>
     </div>
-    </div>
-    
+
   );
 };
 

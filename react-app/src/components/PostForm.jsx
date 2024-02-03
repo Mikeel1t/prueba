@@ -1,22 +1,43 @@
 import React, { useState } from 'react';
+import { endpoints } from '../apiConfig';
+import { obtenerPublicaciones, useAuth } from '../context/AuthContext';
 
 const PostForm = ({ onAddPost }) => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
+    const { obtenerPublicaciones } = useAuth();
 
-    const handleAddPost = () => {
-        if (title.trim() !== '' && content.trim() !== '') {
-            const newPost = {
-                id: Date.now(),
-                title,
-                content,
-                date: new Date().toLocaleString(),
-            };
-            onAddPost(newPost);
+    let usuarioSession = JSON.parse(localStorage.getItem('usuario'));
+    
+
+    const handleGuardarPost = async () => {
+        try {
+          const response = await fetch(endpoints.guardarPost, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: usuarioSession.id,
+              title,
+              content,
+            }),
+          });
+    
+          if (response.ok) {
+            console.log('Post guardado con éxito');
             setTitle('');
             setContent('');
+            obtenerPublicaciones();
+          } else {
+            console.error('Error al guardar el post');
+            // Manejar el error en consecuencia
+          }
+        } catch (error) {
+          console.error('Error al realizar la solicitud:', error);
+          // Manejar el error en consecuencia
         }
-    };
+      };
 
     return (
 
@@ -38,7 +59,7 @@ const PostForm = ({ onAddPost }) => {
                                 id="comment" rows="4" class="w-full px-0 text-sm text-gray-900 bg-white border-0 dark:bg-gray-800 focus:ring-0 dark:text-white dark:placeholder-gray-400" placeholder="" required></textarea>
                         </div>
                         <div class="flex items-center justify-between px-3 py-2 border-t dark:border-gray-600">
-                            <button onClick={handleAddPost} type="submit" class="inline-flex items-center py-2.5 px-4 text-xs font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-900 hover:bg-blue-800">
+                            <button onClick={handleGuardarPost} type="submit" class="inline-flex items-center py-2.5 px-4 text-xs font-medium text-center text-white bg-blue-700 rounded-lg focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-900 hover:bg-blue-800">
                                 Publicar
                             </button>
                             <div class="flex ps-0 space-x-1 rtl:space-x-reverse sm:ps-2">
